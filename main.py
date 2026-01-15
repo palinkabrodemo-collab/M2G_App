@@ -1,7 +1,7 @@
 import flet as ft
 import time
 
-# --- DATI E CONFIGURAZIONE ---
+# --- DATI ---
 BOOKS_DATA = {
     "Lodi Mattutine": ["lodi1.jpg", "lodi2.jpg", "lodi3.jpg", "lodi4.jpg", "lodi5.jpg"],
     "Libretto": ["lib1.jpg", "lib2.jpg", "lib3.jpg", "lib4.jpg", "lib5.jpg"],
@@ -102,21 +102,20 @@ COLORS = {
 }
 
 def main(page: ft.Page):
-    # Setup Pagina Mobile
+    # Setup Pagina Mobile - RIMOSSE DIMENSIONI FISSE
     page.title = "M2G App"
-    page.window_width = 400
-    page.window_height = 850
     page.bgcolor = "white"
+    page.padding = 0 # Importante per full screen
+    page.spacing = 0
     
-    # Area sicura per evitare che l'app finisca sotto la fotocamera del telefono
+    # Area sicura (Notch)
     page.safe_area = ft.SafeArea(content=None)
 
-    # --- 1. AUDIO NATIVO (NO PYGAME) ---
-    # Questo usa il player interno di Android
+    # --- AUDIO ---
     audio_player = ft.Audio(src="inno.mp3", autoplay=False, release_mode="stop")
     page.overlay.append(audio_player)
 
-    # --- 2. MEMORIA INTERNA ---
+    # --- DATI ---
     def get_stored_data():
         return {
             "name": page.client_storage.get("user_name") or "Utente",
@@ -137,7 +136,7 @@ def main(page: ft.Page):
     def get_c(key):
         return COLORS["dark" if state["is_dark"] else "light"][key]
 
-    # --- 3. GALLERIA (FILE PICKER) ---
+    # --- FILE PICKER ---
     def on_file_picked(e):
         if e.files:
             path = e.files[0].path
@@ -152,14 +151,14 @@ def main(page: ft.Page):
     file_picker = ft.FilePicker(on_result=on_file_picked)
     page.overlay.append(file_picker)
 
-    # --- UI COMPONENTS ---
+    # --- UI ---
     
     # Header
     txt_welcome_name = ft.Text(f"Bentornato, {data['name']}", size=24, weight="w400")
     header_logo = ft.Container(width=65, height=65, border_radius=18, alignment=ft.Alignment(0, 0), content=ft.Text("M2G", color="white", size=22, weight="w300"))
-    header_container = ft.Container(padding=ft.padding.only(top=20, bottom=20), content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15, controls=[header_logo, txt_welcome_name]))
+    header_container = ft.Container(padding=ft.padding.only(top=20, bottom=20, left=20, right=20), content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15, controls=[header_logo, txt_welcome_name]))
 
-    # User Page Elements
+    # User Page
     is_svg_start = "user.svg" in data["pic"]
     img_profile_view = ft.Image(src=data["pic"], width=150, height=150, border_radius=75, fit="cover", color=get_c("primary") if is_svg_start else None)
     container_profile_border = ft.Container(content=img_profile_view, border_radius=100, padding=5, border=ft.border.all(3, "transparent"))
@@ -195,7 +194,7 @@ def main(page: ft.Page):
         ]
     )
 
-    # Notes Page Elements
+    # Note Page
     notes_input_full = ft.TextField(
         value=data["notes"], multiline=True, min_lines=30, max_length=10000,
         border=ft.InputBorder.NONE, text_size=state["font_size"], bgcolor="transparent", content_padding=ft.padding.only(top=5, left=5)
@@ -204,8 +203,9 @@ def main(page: ft.Page):
     btn_close_notes = ft.Container(padding=10, content=ft.Image(src=FEATHER_MAP["arrow-left"], width=24, height=24))
     btn_save_notes = ft.Container(padding=10, content=ft.Image(src=FEATHER_MAP["save"], width=24, height=24))
     
+    # MODIFICA: Usiamo expand=True invece di dimensioni fisse
     notes_container = ft.Container(
-        width=375, height=812, padding=20,
+        expand=True, padding=20,
         offset=ft.Offset(1, 0), animate_offset=ft.Animation(400, ft.AnimationCurve.EASE_OUT_CUBIC),
         opacity=0, animate_opacity=300,
         content=ft.Column(controls=[
@@ -223,14 +223,15 @@ def main(page: ft.Page):
         ])
     )
 
-    # Reader Page Elements
+    # Reader Page
     reader_title = ft.Text("Titolo", size=20, weight="bold")
     reader_col = ft.Column(spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     reader_scroll = ft.Column(scroll="auto", expand=True, controls=[reader_col], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     btn_close_reader = ft.Container(padding=10, content=ft.Image(src=FEATHER_MAP["arrow-left"], width=24, height=24))
     
+    # MODIFICA: expand=True
     reader_container = ft.Container(
-        width=375, height=812, padding=0,
+        expand=True, padding=0,
         offset=ft.Offset(1, 0), animate_offset=ft.Animation(400, ft.AnimationCurve.EASE_OUT_CUBIC),
         opacity=0, animate_opacity=300,
         content=ft.Column(controls=[
@@ -254,7 +255,7 @@ def main(page: ft.Page):
         content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[btn_home_container, btn_user_container])
     )
 
-    # --- LOGIC ---
+    # --- LOGICA ---
     def update_interface_colors():
         c = get_c
         bg, fg, primary = c("bg"), c("text"), c("primary")
@@ -333,7 +334,6 @@ def main(page: ft.Page):
         if title == "Inno":
             text_el = ft.Container(padding=20, content=ft.Text(LYRICS_TEXT, size=state["font_size"], color=c("text"), text_align="center"))
             
-            # --- BLOCCO AUDIO CORRETTO (SENZA PYGAME) ---
             icon_play = ft.Image(src=FEATHER_MAP["play"], width=30, height=30, color="white")
             label_play = ft.Text("RIPRODUCI", color="white", weight="bold")
             btn_play = ft.Container(bgcolor=c("primary"), border_radius=15, padding=15, width=250, content=ft.Row([icon_play, label_play], alignment=ft.MainAxisAlignment.CENTER))
@@ -432,9 +432,19 @@ def main(page: ft.Page):
     btn_user_container.on_click = lambda e: navigate(1)
 
     # Start
-    mobile_screen = ft.Container(width=375, height=812, bgcolor="white", border_radius=35, clip_behavior=ft.ClipBehavior.HARD_EDGE, shadow=ft.BoxShadow(blur_radius=50, color="#33000000"), content=ft.Stack(controls=[ft.Column(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[header_container, dynamic_content, custom_navbar]), reader_container, notes_container]))
+    mobile_screen = ft.Container(
+        expand=True, # IMPORTANTE: occupa tutto lo schermo
+        bgcolor="white", 
+        content=ft.Stack(controls=[
+            ft.Column(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[header_container, dynamic_content, custom_navbar]),
+            reader_container,
+            notes_container
+        ])
+    )
+    
     page.add(mobile_screen)
     update_interface_colors()
 
+# IMPORTANTE: Aggiungi assets_dir="assets" qui!
 if __name__ == "__main__":
-    ft.app(target=main, view=ft.AppView.FLET_APP)
+    ft.app(target=main, assets_dir="assets")
