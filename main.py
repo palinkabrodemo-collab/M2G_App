@@ -1,12 +1,14 @@
 import flet as ft
+import time
 
-# --- VERSIONE 37.0: COMPONENTI NATIVI (SOLUZIONE DEFINITIVA) ---
-# Abbandoniamo i Container manuali che causano il blocco grigio.
-# Usiamo page.appbar (sopra) e page.navigation_bar (sotto).
-# Il contenuto centrale (body) sarà libero da interferenze grafiche.
+# --- VERSIONE 38.0: SAFE BOOT (AVVIO SICURO) ---
+# Obiettivo: Sconfiggere lo schermo bianco.
+# Strategia: 
+# 1. Mostra SUBITO una schermata di caricamento.
+# 2. Carica audio e memoria solo DOPO che lo schermo è acceso.
+# 3. Se c'è un errore, lo scrive a video invece di bloccare tutto.
 
-# --- DATI E COSTANTI ---
-
+# --- DATI ---
 ICON_MAP = {
     "sunrise": "wb_sunny",
     "book-open": "menu_book",
@@ -23,7 +25,6 @@ ICON_MAP = {
     "stop": "stop_circle"
 }
 
-# TESTO COMPLETO
 LYRICS_TEXT = """
 Lo sai che ti amo
 Ma a volte è difficile sai?
@@ -108,45 +109,67 @@ COLORS = {
 }
 
 def main(page: ft.Page):
-    # 1. SETUP BASE
+    # 1. SETUP MINIMO (Velocissimo)
     page.title = "M2G App"
-    page.theme_mode = ft.ThemeMode.LIGHT # Forziamo Light all'inizio per sicurezza
-    page.padding = 10 # Un po' di margine per non attaccare ai bordi
-    page.spacing = 10
+    page.bgcolor = "white"
+    page.theme_mode = ft.ThemeMode.LIGHT
+    
+    # --- STEP 1: DISEGNARE SUBITO QUALCOSA ---
+    # Questo serve a "sbloccare" lo schermo bianco iniziale
+    loading_label = ft.Text("Avvio in corso...", size=20, color="black")
+    page.add(ft.Center(content=loading_label))
+    page.update()
+    
+    # Piccola pausa per dare tempo al sistema grafico di svegliarsi
+    time.sleep(0.5)
 
-    # AUDIO (Definito ma parte in stop)
-    audio_player = ft.Audio(src="inno.mp3", autoplay=False, release_mode="stop")
-    page.overlay.append(audio_player)
-
-    # 2. STATO (Memoria)
+    # Variabili di stato globali
     state = {
         "name": "Utente",
         "notes": "",
         "dark": False,
         "audio_playing": False
     }
+    
+    audio_player = None
 
-    # Caricamento sicuro (dentro Try-Except per evitare blocchi)
+    # --- STEP 2: CARICAMENTO PROTETTO ---
     try:
-        if page.client_storage.contains_key("user_name"):
-            state["name"] = page.client_storage.get("user_name")
-        if page.client_storage.contains_key("user_notes"):
-            state["notes"] = page.client_storage.get("user_notes")
-        if page.client_storage.contains_key("dark_mode"):
-            state["dark"] = page.client_storage.get("dark_mode")
-            page.theme_mode = ft.ThemeMode.DARK if state["dark"] else ft.ThemeMode.LIGHT
-    except:
-        pass
+        # Tentativo caricamento memoria
+        loading_label.value = "Caricamento memoria..."
+        page.update()
+        
+        try:
+            if page.client_storage.contains_key("user_name"):
+                state["name"] = page.client_storage.get("user_name")
+            if page.client_storage.contains_key("user_notes"):
+                state["notes"] = page.client_storage.get("user_notes")
+            if page.client_storage.contains_key("dark_mode"):
+                state["dark"] = page.client_storage.get("dark_mode")
+                page.theme_mode = ft.ThemeMode.DARK if state["dark"] else ft.ThemeMode.LIGHT
+        except Exception as e:
+            print(f"Errore memoria (non grave): {e}")
+
+        # Tentativo caricamento audio
+        loading_label.value = "Caricamento audio..."
+        page.update()
+        
+        audio_player = ft.Audio(src="inno.mp3", autoplay=False, release_mode="stop")
+        page.overlay.append(audio_player)
+
+    except Exception as e:
+        # SE QUALCOSA ESPLODE QUI, LO VEDRAI A VIDEO
+        page.add(ft.Text(f"ERRORE CRITICO AVVIO: {e}", color="red", size=20))
+        return
+
+    # --- STEP 3: COSTRUZIONE INTERFACCIA VERA ---
+    # Se siamo arrivati qui, è tutto ok. Costruiamo l'app nativa.
 
     def get_c(key):
         return COLORS["dark" if state["dark"] else "light"][key]
 
-    # --- 3. DEFINIZIONE DELLE VISTE (CONTENUTO) ---
-
     def view_home():
-        # Usiamo ListView invece di Column: è più sicuro contro i glitch grafici su Android
-        lv = ft.ListView(expand=True, spacing=15)
-        
+        lv = ft.ListView(expand=True, spacing=15, padding=20)
         items = [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]
         
         for title, icon in items:
@@ -171,14 +194,14 @@ def main(page: ft.Page):
         def save_name(e):
             state["name"] = e.control.value
             page.client_storage.set("user_name", e.control.value)
-            page.appbar.title.value = f"Bentornato, {state['name']}" # Aggiorna titolo
-            page.update()
+            # Aggiorna titolo AppBar
+            if page.appbar: page.appbar.title.value = f"Bentornato, {state['name']}"; page.update()
 
         def toggle_dark(e):
             state["dark"] = e.control.value
             page.client_storage.set("dark_mode", e.control.value)
             page.theme_mode = ft.ThemeMode.DARK if state["dark"] else ft.ThemeMode.LIGHT
-            navigate_to_tab(1) # Ricarica pagina profilo
+            navigate_to_tab(1)
 
         return ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20, scroll="auto", controls=[
             ft.Container(height=10),
@@ -199,16 +222,10 @@ def main(page: ft.Page):
             state["notes"] = e.control.value
             page.client_storage.set("user_notes", e.control.value)
 
-        # TextField che occupa tutto lo spazio disponibile
         return ft.TextField(
-            value=state["notes"], 
-            multiline=True, 
-            expand=True, 
-            border=ft.InputBorder.NONE, 
-            bgcolor=get_c("input_bg"),
-            color=get_c("text"), 
-            on_change=save_notes,
-            hint_text="Scrivi qui le tue note..."
+            value=state["notes"], multiline=True, expand=True, 
+            border=ft.InputBorder.NONE, bgcolor=get_c("input_bg"), color=get_c("text"), 
+            on_change=save_notes, hint_text="Scrivi qui..."
         )
 
     def view_reader(title):
@@ -218,15 +235,11 @@ def main(page: ft.Page):
             def toggle_audio(e):
                 state["audio_playing"] = not state["audio_playing"]
                 if state["audio_playing"]: 
-                    audio_player.play()
-                    btn_play.text = "PAUSA"
-                    btn_play.icon = ICON_MAP["pause"]
-                    btn_play.bgcolor = "red"
+                    if audio_player: audio_player.play()
+                    btn_play.text = "PAUSA"; btn_play.icon = ICON_MAP["pause"]; btn_play.bgcolor = "red"
                 else: 
-                    audio_player.pause()
-                    btn_play.text = "PLAY"
-                    btn_play.icon = ICON_MAP["play"]
-                    btn_play.bgcolor = get_c("primary")
+                    if audio_player: audio_player.pause()
+                    btn_play.text = "PLAY"; btn_play.icon = ICON_MAP["play"]; btn_play.bgcolor = get_c("primary")
                 btn_play.update()
 
             btn_play = ft.ElevatedButton("PLAY", icon=ICON_MAP["play"], on_click=toggle_audio, bgcolor=get_c("primary"), color="white")
@@ -234,61 +247,16 @@ def main(page: ft.Page):
             content.controls.append(ft.Text(LYRICS_TEXT, text_align="center", color=get_c("text"), size=16))
         else:
             content.controls.append(ft.Container(padding=20, content=ft.Text(f"Sezione: {title}", color=get_c("text"), size=18)))
-
         return content
 
-    # --- 4. NAVIGAZIONE (Logica "Swap" Pura) ---
-
-    def navigate_to_tab(index):
-        # Ripulisce la pagina e imposta la nuova vista
-        page.controls.clear()
-        
-        # Reimposta AppBar e NavBar (sono spariti con clear)
-        setup_bars(index)
-        
-        # Sceglie il contenuto
-        if index == 0: # Home
-            page.add(view_home())
-        elif index == 1: # Profilo
-            page.add(view_user())
-            
-        page.update()
-
-    def navigate_to_notes():
-        page.controls.clear()
-        # Per le note usiamo una AppBar specifica con tasto indietro
-        page.appbar = ft.AppBar(
-            leading=ft.IconButton(ICON_MAP["arrow-left"], on_click=lambda e: navigate_to_tab(1), icon_color="white"),
-            title=ft.Text("Note", color="white"),
-            bgcolor=get_c("primary")
-        )
-        page.navigation_bar = None # Niente menu sotto nelle note
-        page.add(view_notes())
-        page.update()
-
-    def navigate_to_reader(title):
-        page.controls.clear()
-        # AppBar specifica per il lettore
-        page.appbar = ft.AppBar(
-            leading=ft.IconButton(ICON_MAP["arrow-left"], on_click=lambda e: navigate_to_tab(0), icon_color="white"),
-            title=ft.Text(title, color="white"),
-            bgcolor=get_c("primary")
-        )
-        page.navigation_bar = None # Niente menu sotto nel lettore
-        page.add(view_reader(title))
-        page.update()
-
+    # --- NAVIGAZIONE ---
+    
     def setup_bars(current_index):
-        # Configura la barra superiore (AppBar)
         page.appbar = ft.AppBar(
-            leading=ft.Container(padding=5, content=ft.Icon("star", color="white")), # Logo finto
-            leading_width=40,
+            leading=ft.Icon("star", color="white"), 
             title=ft.Text(f"Bentornato, {state['name']}", color="white"),
-            center_title=False,
             bgcolor=get_c("primary")
         )
-        
-        # Configura la barra inferiore (NavigationBar)
         page.navigation_bar = ft.NavigationBar(
             selected_index=current_index,
             on_change=lambda e: navigate_to_tab(e.control.selected_index),
@@ -299,9 +267,30 @@ def main(page: ft.Page):
             bgcolor=get_c("nav_bg")
         )
 
-    # AVVIO
-    page.bgcolor = get_c("bg")
-    navigate_to_tab(0) # Parte dalla Home
+    def navigate_to_tab(index):
+        page.controls.clear()
+        setup_bars(index)
+        if index == 0: page.add(view_home())
+        elif index == 1: page.add(view_user())
+        page.update()
+
+    def navigate_to_notes():
+        page.controls.clear()
+        page.appbar = ft.AppBar(leading=ft.IconButton(ICON_MAP["arrow-left"], on_click=lambda e: navigate_to_tab(1), icon_color="white"), title=ft.Text("Note", color="white"), bgcolor=get_c("primary"))
+        page.navigation_bar = None
+        page.add(view_notes())
+        page.update()
+
+    def navigate_to_reader(title):
+        page.controls.clear()
+        page.appbar = ft.AppBar(leading=ft.IconButton(ICON_MAP["arrow-left"], on_click=lambda e: navigate_to_tab(0), icon_color="white"), title=ft.Text(title, color="white"), bgcolor=get_c("primary"))
+        page.navigation_bar = None
+        page.add(view_reader(title))
+        page.update()
+
+    # --- LANCIO FINALE ---
+    # Puliamo la scritta "Caricamento..." e avviamo l'app
+    navigate_to_tab(0)
 
 if __name__ == "__main__":
     ft.app(target=main)
