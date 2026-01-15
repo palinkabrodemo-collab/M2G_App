@@ -1,20 +1,9 @@
 import flet as ft
 
-# --- VERSIONE 35.0: CODICE COMPLETO (TESTI INTEGRALI) ---
-# Nessun taglio al testo.
-# Architettura "Swap" per risolvere i rettangoli grigi.
-# Funzionalità Audio e Memoria attive.
+# --- VERSIONE 36.0: TEST GRAFICO PURO ---
+# Abbiamo il TESTO COMPLETO.
+# Abbiamo DISATTIVATO Audio e Memoria per capire se sono loro a bloccare l'avvio.
 
-# --- 1. DATI E COSTANTI ---
-
-# Liste per le immagini (da riempire con i nomi dei file se li hai)
-BOOKS_DATA = {
-    "Lodi Mattutine": ["lodi1.jpg", "lodi2.jpg", "lodi3.jpg", "lodi4.jpg", "lodi5.jpg"],
-    "Libretto": ["lib1.jpg", "lib2.jpg", "lib3.jpg", "lib4.jpg", "lib5.jpg"],
-    "Foto ricordo": [] 
-}
-
-# Icone sicure (stringhe)
 ICON_MAP = {
     "sunrise": "wb_sunny",
     "book-open": "menu_book",
@@ -31,7 +20,7 @@ ICON_MAP = {
     "stop": "stop_circle"
 }
 
-# TESTO COMPLETO (Senza tagli)
+# --- TESTO COMPLETO ---
 LYRICS_TEXT = """
 Lo sai che ti amo
 Ma a volte è difficile sai?
@@ -109,51 +98,39 @@ COLORS = {
         "bg": "#f3f0e9", "primary": "#6a8a73", "text": "#1a1a1a", 
         "card": "white", "icon_bg": "#dbe4de", "nav_bg": "white", "input_bg": "white"
     },
-    "dark": {
+    "dark": { # (Non usato ora, ma pronto)
         "bg": "#1e1e1e", "primary": "#6a8a73", "text": "#ffffff", 
         "card": "#2c2c2c", "icon_bg": "#3a3a3a", "nav_bg": "#2c2c2c", "input_bg": "#333333"
     }
 }
 
 def main(page: ft.Page):
-    # SETUP PAGINA
+    # 1. SETUP BASE
     page.title = "M2G App"
     page.padding = 0
     page.spacing = 0
     page.safe_area = ft.SafeArea(content=None)
     page.bgcolor = "white"
 
-    # AUDIO
-    audio_player = ft.Audio(src="inno.mp3", autoplay=False, release_mode="stop")
-    page.overlay.append(audio_player)
+    # --- DISATTIVATO TEMPORANEAMENTE PER EVITARE SCHERMO BIANCO ---
+    # audio_player = ft.Audio(src="inno.mp3")
+    # page.overlay.append(audio_player)
 
-    # --- 2. STATO DELL'APP (MEMORIA) ---
+    # Dati Fissi (Niente caricamento memoria per ora)
     state = {
         "page": "home",
-        "name": "Utente",
+        "name": "Utente", 
         "notes": "",
         "dark": False,
-        "reader_title": "",
-        "audio_playing": False
+        "reader_title": ""
     }
 
-    # Caricamento sicuro dati
-    try:
-        if page.client_storage.contains_key("user_name"):
-            state["name"] = page.client_storage.get("user_name")
-        if page.client_storage.contains_key("user_notes"):
-            state["notes"] = page.client_storage.get("user_notes")
-        if page.client_storage.contains_key("dark_mode"):
-            state["dark"] = page.client_storage.get("dark_mode")
-    except:
-        pass # Se fallisce, usa i default
-
     def get_c(key):
-        return COLORS["dark" if state["dark"] else "light"][key]
+        return COLORS["light"][key] # Forziamo Light per sicurezza
 
-    # --- 3. COSTRUTTORI PAGINE ---
+    # --- 2. CONTENUTI ---
 
-    def build_home():
+    def get_home_content():
         col = ft.Column(spacing=15, scroll="auto")
         items = [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]
         
@@ -176,98 +153,33 @@ def main(page: ft.Page):
         col.controls.append(ft.Container(height=20))
         return col
 
-    def build_user():
-        def save_name(e):
-            state["name"] = e.control.value
-            page.client_storage.set("user_name", e.control.value)
-            header_title.value = f"Bentornato, {state['name']}"
-            header_title.update()
-        
-        def toggle_dark(e):
-            state["dark"] = e.control.value
-            page.client_storage.set("dark_mode", e.control.value)
-            update_ui() 
-
+    def get_user_content():
         return ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20, scroll="auto", controls=[
             ft.Container(height=10),
             ft.Icon("person", size=80, color=get_c("primary")),
             ft.Text("Il tuo Profilo", size=20, weight="bold", color=get_c("text")),
-            ft.Container(width=280, content=ft.TextField(value=state["name"], label="Nome", on_change=save_name, border_color=get_c("primary"))),
+            ft.Container(width=280, content=ft.TextField(value=state["name"], label="Nome", border_color=get_c("primary"))),
             ft.Divider(),
             ft.Container(
                 bgcolor=get_c("primary"), width=300, padding=15, border_radius=10,
                 on_click=lambda e: navigate("notes"),
                 content=ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[ft.Icon(ICON_MAP["edit"], color="white"), ft.Text("APRI NOTE", color="white", weight="bold")])
-            ),
-            ft.Divider(),
-            ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                ft.Text("Tema Scuro", color=get_c("text"), size=16),
-                ft.Switch(value=state["dark"], on_change=toggle_dark, active_color=get_c("primary"))
-            ]))
-        ])
-
-    def build_notes():
-        def save_notes(e):
-            state["notes"] = e.control.value
-            page.client_storage.set("user_notes", e.control.value)
-
-        return ft.Column(expand=True, controls=[
-            ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                ft.IconButton(icon=ICON_MAP["arrow-left"], icon_color=get_c("text"), on_click=lambda e: navigate("user")),
-                ft.Text("Note", size=20, weight="bold", color=get_c("text")),
-                ft.Icon(ICON_MAP["save"], color=get_c("primary"))
-            ])),
-            ft.Container(
-                expand=True, bgcolor=get_c("input_bg"), border_radius=10, padding=15, margin=10,
-                content=ft.TextField(value=state["notes"], multiline=True, border=ft.InputBorder.NONE, color=get_c("text"), on_change=save_notes)
             )
         ])
 
-    def build_reader():
+    def get_reader_content():
         title = state["reader_title"]
         content_body = ft.Column(scroll="auto", expand=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
 
         if title == "Inno":
-            # LOGICA AUDIO E TESTO INNO
-            def toggle_audio(e):
-                state["audio_playing"] = not state["audio_playing"]
-                if state["audio_playing"]: 
-                    audio_player.play()
-                    btn_play.icon = ICON_MAP["pause"]
-                    btn_play.text = "PAUSA"
-                    btn_play.bgcolor = "#d9534f"
-                else: 
-                    audio_player.pause()
-                    btn_play.icon = ICON_MAP["play"]
-                    btn_play.text = "PLAY"
-                    btn_play.bgcolor = get_c("primary")
-                page.update()
-
-            btn_play = ft.ElevatedButton(text="PLAY", icon=ICON_MAP["play"], on_click=toggle_audio, bgcolor=get_c("primary"), color="white")
-            
             content_body.controls.append(ft.Container(padding=20, content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                btn_play,
+                ft.Icon(ICON_MAP["music"], size=50, color=get_c("primary")),
+                ft.Text("Audio disattivato per Test", color="red"), # Avviso
                 ft.Container(height=20),
                 ft.Text(LYRICS_TEXT, text_align="center", color=get_c("text"), size=16)
             ])))
-        
         else:
-            # LOGICA IMMAGINI (Lodi, Libretto, Foto)
-            # Se ci sono immagini nella lista BOOKS_DATA, le mostriamo
-            images_list = BOOKS_DATA.get(title, [])
-            
-            if not images_list and title == "Foto ricordo":
-                 content_body.controls.append(ft.Container(padding=20, content=ft.Text("Galleria foto non ancora caricata.", color=get_c("text"))))
-            elif not images_list:
-                 content_body.controls.append(ft.Container(padding=20, content=ft.Text(f"Nessuna pagina trovata per {title}.", color=get_c("text"))))
-            else:
-                for img_name in images_list:
-                    # Carichiamo l'immagine. Flet cercherà automaticamente in 'assets'
-                    # Se non le trova, mostrerà un'icona di errore ma non crasherà l'app
-                    content_body.controls.append(
-                        ft.Image(src=img_name, width=400, fit=ft.ImageFit.CONTAIN, error_content=ft.Text("Immagine non trovata"))
-                    )
-                    content_body.controls.append(ft.Container(height=10))
+            content_body.controls.append(ft.Container(padding=20, content=ft.Text(f"Sezione: {title}", color=get_c("text"))))
 
         return ft.Column(expand=True, controls=[
             ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
@@ -279,62 +191,58 @@ def main(page: ft.Page):
             content_body
         ])
 
-    # --- 4. GESTIONE NAVIGAZIONE E UI ---
+    def get_notes_content():
+        return ft.Column(expand=True, controls=[
+            ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                ft.IconButton(icon=ICON_MAP["arrow-left"], icon_color=get_c("text"), on_click=lambda e: navigate("user")),
+                ft.Text("Note", size=20, weight="bold", color=get_c("text")),
+                ft.Icon(ICON_MAP["save"], color=get_c("primary"))
+            ])),
+            ft.Container(expand=True, bgcolor=get_c("input_bg"), border_radius=10, padding=15, margin=10, content=ft.TextField(value=state["notes"], multiline=True, border=ft.InputBorder.NONE, color=get_c("text")))
+        ])
+
+    # --- 3. GESTIONE UI ---
     
-    header_title = ft.Text("", size=22, weight="w400")
     header_container = ft.Container(padding=ft.padding.only(top=30, bottom=10, left=20, right=20))
-    body_container = ft.Container(expand=True, padding=0) 
+    body_container = ft.Container(expand=True, padding=0)
     navbar_container = ft.Container()
 
     def navigate(target, data=""):
         state["page"] = target
         if data: state["reader_title"] = data
-        
-        # Se usciamo dall'inno, fermiamo l'audio per sicurezza
-        if target != "reader" and state["audio_playing"]:
-             audio_player.pause()
-             state["audio_playing"] = False
-
         update_ui()
 
     def update_ui():
         page.bgcolor = get_c("bg")
-        header_title.color = get_c("text")
-        header_title.value = f"Bentornato, {state['name']}"
-
-        # 1. HEADER
+        
+        # Header
         if state["page"] in ["home", "user"]:
             header_container.content = ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10, controls=[
                 ft.Container(width=60, height=60, bgcolor=get_c("primary"), border_radius=15, alignment=ft.Alignment(0,0), content=ft.Text("M2G", color="white", size=20, weight="bold")),
-                header_title
+                ft.Text(f"Bentornato, {state['name']}", size=22, color=get_c("text"))
             ])
             header_container.visible = True
         else:
             header_container.visible = False
 
-        # 2. BODY (SWAP)
-        body_container.content = None 
-        
+        # Body
+        body_container.content = None
         if state["page"] == "home":
-            body_container.content = build_home()
-            body_container.padding = 20
+            body_container.content = get_home_content(); body_container.padding = 20
         elif state["page"] == "user":
-            body_container.content = build_user()
-            body_container.padding = 20
+            body_container.content = get_user_content(); body_container.padding = 20
         elif state["page"] == "notes":
-            body_container.content = build_notes()
-            body_container.padding = 0
+            body_container.content = get_notes_content(); body_container.padding = 0
         elif state["page"] == "reader":
-            body_container.content = build_reader()
-            body_container.padding = 0
+            body_container.content = get_reader_content(); body_container.padding = 0
 
-        # 3. NAVBAR
+        # Navbar
         if state["page"] in ["home", "user"]:
             btn_h_bg = get_c("primary") if state["page"] == "home" else get_c("nav_bg")
             btn_h_fg = "white" if state["page"] == "home" else get_c("text")
             btn_u_bg = get_c("primary") if state["page"] == "user" else get_c("nav_bg")
             btn_u_fg = "white" if state["page"] == "user" else get_c("text")
-
+            
             navbar_container.content = ft.Container(
                 padding=15, bgcolor=get_c("nav_bg"),
                 border_radius=ft.border_radius.only(top_left=20, top_right=20),
