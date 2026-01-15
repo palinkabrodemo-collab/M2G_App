@@ -1,19 +1,19 @@
 import flet as ft
-import time
 
 # --- DATI ---
+# NOTA: Ho aggiunto lo slash "/" davanti a tutto. È obbligatorio per Android.
 BOOKS_DATA = {
-    "Lodi Mattutine": ["lodi1.jpg", "lodi2.jpg", "lodi3.jpg", "lodi4.jpg", "lodi5.jpg"],
-    "Libretto": ["lib1.jpg", "lib2.jpg", "lib3.jpg", "lib4.jpg", "lib5.jpg"],
+    "Lodi Mattutine": ["/lodi1.jpg", "/lodi2.jpg", "/lodi3.jpg", "/lodi4.jpg", "/lodi5.jpg"],
+    "Libretto": ["/lib1.jpg", "/lib2.jpg", "/lib3.jpg", "/lib4.jpg", "/lib5.jpg"],
     "Foto ricordo": [] 
 }
 
 FEATHER_MAP = {
-    "sunrise": "sunrise.svg", "book-open": "book-open.svg", "music": "music.svg", 
-    "camera": "camera.svg", "chevron-right": "chevron-right.svg", "home": "home.svg", 
-    "user": "user.svg", "arrow-left": "arrow-left.svg", "save": "save.svg", 
-    "edit": "edit.svg", "play": "play-circle.svg", "pause": "pause-circle.svg", 
-    "stop": "stop-circle.svg"
+    "sunrise": "/sunrise.svg", "book-open": "/book-open.svg", "music": "/music.svg", 
+    "camera": "/camera.svg", "chevron-right": "/chevron-right.svg", "home": "/home.svg", 
+    "user": "/user.svg", "arrow-left": "/arrow-left.svg", "save": "/save.svg", 
+    "edit": "/edit.svg", "play": "/play-circle.svg", "pause": "/pause-circle.svg", 
+    "stop": "/stop-circle.svg"
 }
 
 LYRICS_TEXT = """
@@ -102,27 +102,41 @@ COLORS = {
 }
 
 def main(page: ft.Page):
-    # Setup Pagina Mobile - RIMOSSE DIMENSIONI FISSE
     page.title = "M2G App"
     page.bgcolor = "white"
-    page.padding = 0 # Importante per full screen
+    page.padding = 0
     page.spacing = 0
+    # Impostiamo il tema chiaro forzato all'avvio per evitare glitch grafici
+    page.theme_mode = ft.ThemeMode.LIGHT 
     
-    # Area sicura (Notch)
-    page.safe_area = ft.SafeArea(content=None)
-
+    # --- CHECK ASSETS ---
+    # Questo serve a Flet per sapere che deve guardare nella cartella "assets"
+    # ma i file devono essere chiamati con "/file.svg"
+    
     # --- AUDIO ---
-    audio_player = ft.Audio(src="inno.mp3", autoplay=False, release_mode="stop")
-    page.overlay.append(audio_player)
+    # Se il file non esiste o l'audio crasha, l'app continua lo stesso
+    try:
+        audio_player = ft.Audio(src="/inno.mp3", autoplay=False, release_mode="stop")
+        page.overlay.append(audio_player)
+    except:
+        audio_player = None
 
-    # --- DATI ---
+    # --- DATI E RESET SICUREZZA ---
     def get_stored_data():
+        # Recuperiamo la foto salvata
+        saved_pic = page.client_storage.get("profile_pic") or "/user.svg"
+        
+        # FIX CRITICO: Se la foto salvata è un percorso Windows (es C:\Users..), resettala!
+        # Su Android quei percorsi fanno crashare l'app.
+        if "C:" in saved_pic or "\\" in saved_pic:
+            saved_pic = "/user.svg"
+            
         return {
             "name": page.client_storage.get("user_name") or "Utente",
             "notes": page.client_storage.get("user_notes") or "",
             "font": float(page.client_storage.get("font_size") or 16.0),
             "dark": page.client_storage.get("dark_mode") or False,
-            "pic": page.client_storage.get("profile_pic") or "user.svg"
+            "pic": saved_pic
         }
     
     data = get_stored_data()
@@ -142,7 +156,8 @@ def main(page: ft.Page):
             path = e.files[0].path
             page.client_storage.set("profile_pic", path)
             img_profile_view.src = path
-            img_profile_view.color = None
+            # Reset colore se è un'immagine
+            img_profile_view.color = None 
             nav_user_img.src = path
             nav_user_img.color = None
             nav_user_img.border_radius = 50
@@ -203,7 +218,6 @@ def main(page: ft.Page):
     btn_close_notes = ft.Container(padding=10, content=ft.Image(src=FEATHER_MAP["arrow-left"], width=24, height=24))
     btn_save_notes = ft.Container(padding=10, content=ft.Image(src=FEATHER_MAP["save"], width=24, height=24))
     
-    # MODIFICA: Usiamo expand=True invece di dimensioni fisse
     notes_container = ft.Container(
         expand=True, padding=20,
         offset=ft.Offset(1, 0), animate_offset=ft.Animation(400, ft.AnimationCurve.EASE_OUT_CUBIC),
@@ -229,7 +243,6 @@ def main(page: ft.Page):
     reader_scroll = ft.Column(scroll="auto", expand=True, controls=[reader_col], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     btn_close_reader = ft.Container(padding=10, content=ft.Image(src=FEATHER_MAP["arrow-left"], width=24, height=24))
     
-    # MODIFICA: expand=True
     reader_container = ft.Container(
         expand=True, padding=0,
         offset=ft.Offset(1, 0), animate_offset=ft.Animation(400, ft.AnimationCurve.EASE_OUT_CUBIC),
@@ -246,6 +259,8 @@ def main(page: ft.Page):
     dynamic_content = ft.Container(content=cards_column, expand=True, padding=ft.padding.symmetric(horizontal=25))
     btn_home_container = ft.Container(border_radius=10, padding=10, width=140)
     btn_user_container = ft.Container(border_radius=10, padding=10, width=140)
+    
+    # Nav Images
     nav_home_img = ft.Image(src=FEATHER_MAP["home"], width=20, height=20)
     nav_user_img = ft.Image(src=data["pic"], width=20, height=20, fit="cover", border_radius=50 if not is_svg_start else 0)
 
@@ -268,7 +283,9 @@ def main(page: ft.Page):
         txt_name_input.border_color = primary
         btn_upload_photo.bgcolor = primary
         container_profile_border.border = ft.border.all(3, primary)
-        is_svg = "user.svg" in img_profile_view.src
+        
+        # Gestione SVG vs Immagine
+        is_svg = "/user.svg" in img_profile_view.src
         img_profile_view.color = primary if is_svg else None
         
         btn_open_notes_user.bgcolor = primary
@@ -304,7 +321,8 @@ def main(page: ft.Page):
         is_home = dynamic_content.content == cards_column
         btn_home_container.bgcolor = primary if is_home else c("nav_bg")
         btn_home_container.content = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[ft.Image(src=FEATHER_MAP["home"], width=20, height=20, color="white" if is_home else fg), ft.Text("HOME", color="white" if is_home else fg, weight="bold")])
-        is_svg_nav = "user.svg" in img_profile_view.src
+        
+        is_svg_nav = "/user.svg" in img_profile_view.src
         btn_user_container.bgcolor = primary if not is_home else c("nav_bg")
         user_icon_color = "white" if not is_home else fg
         if not is_svg_nav: user_icon_color = None
@@ -315,7 +333,18 @@ def main(page: ft.Page):
         for item in [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]:
             title, icon = item
             action = (lambda e, t=title: page.launch_url("https://biografieonline.it/img/bio/gallery/r/Robert_Oppenheimer_1.jpg")) if title == "Foto ricordo" else (lambda e, t=title: open_reader(t))
-            cards_column.controls.append(ft.Container(bgcolor=c("card"), border_radius=22, padding=15, height=80, on_click=action, shadow=ft.BoxShadow(spread_radius=0, blur_radius=15, color="#0D000000", offset=ft.Offset(0, 5)), content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[ft.Row(controls=[ft.Container(width=50, height=50, bgcolor=c("icon_bg"), border_radius=14, alignment=ft.Alignment(0, 0), content=ft.Image(src=FEATHER_MAP[icon], width=24, height=24, color=primary)), ft.Container(width=10), ft.Text(title, size=16, weight="bold", color=fg)]), ft.Image(src=FEATHER_MAP["chevron-right"], width=24, color="#dddddd")])))
+            cards_column.controls.append(ft.Container(
+                bgcolor=c("card"), border_radius=22, padding=15, height=80, on_click=action,
+                shadow=ft.BoxShadow(spread_radius=0, blur_radius=15, color="#0D000000", offset=ft.Offset(0, 5)),
+                content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                    ft.Row(controls=[
+                        ft.Container(width=50, height=50, bgcolor=c("icon_bg"), border_radius=14, alignment=ft.Alignment(0, 0), content=ft.Image(src=FEATHER_MAP[icon], width=24, height=24, color=primary)),
+                        ft.Container(width=10),
+                        ft.Text(title, size=16, weight="bold", color=fg)
+                    ]),
+                    ft.Image(src=FEATHER_MAP["chevron-right"], width=24, color="#dddddd")
+                ])
+            ))
         cards_column.controls.append(ft.Container(height=50))
         page.update()
 
@@ -341,13 +370,13 @@ def main(page: ft.Page):
             
             def toggle_audio(e):
                 if state["audio_playing"]:
-                    audio_player.pause()
+                    if audio_player: audio_player.pause()
                     state["audio_playing"] = False
                     icon_play.src = FEATHER_MAP["play"]
                     label_play.value = "RIPRENDI"
                     btn_play.bgcolor = c("primary")
                 else:
-                    audio_player.play()
+                    if audio_player: audio_player.play()
                     state["audio_playing"] = True
                     icon_play.src = FEATHER_MAP["pause"]
                     label_play.value = "PAUSA"
@@ -355,8 +384,9 @@ def main(page: ft.Page):
                 btn_play.update()
             
             def stop_audio(e):
-                audio_player.pause()
-                audio_player.seek(0)
+                if audio_player:
+                    audio_player.pause()
+                    audio_player.seek(0)
                 state["audio_playing"] = False
                 icon_play.src = FEATHER_MAP["play"]
                 label_play.value = "RIPRODUCI"
@@ -375,7 +405,9 @@ def main(page: ft.Page):
         reader_container.update()
 
     def close_reader(e):
-        if state["audio_playing"]: audio_player.pause(); state["audio_playing"] = False
+        if state["audio_playing"]: 
+            if audio_player: audio_player.pause()
+            state["audio_playing"] = False
         reader_container.offset = ft.Offset(1, 0)
         reader_container.opacity = 0
         reader_container.update()
@@ -433,7 +465,7 @@ def main(page: ft.Page):
 
     # Start
     mobile_screen = ft.Container(
-        expand=True, # IMPORTANTE: occupa tutto lo schermo
+        expand=True, 
         bgcolor="white", 
         content=ft.Stack(controls=[
             ft.Column(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[header_container, dynamic_content, custom_navbar]),
@@ -445,6 +477,5 @@ def main(page: ft.Page):
     page.add(mobile_screen)
     update_interface_colors()
 
-# IMPORTANTE: Aggiungi assets_dir="assets" qui!
 if __name__ == "__main__":
     ft.app(target=main, assets_dir="assets")
