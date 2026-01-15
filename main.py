@@ -1,10 +1,9 @@
 import flet as ft
 
-# --- VERSIONE 26.0: "NUDA" (NO ASSETS ESTERNI) ---
-# Usiamo solo icone native per testare se l'APK funziona.
+# --- VERSIONE 27.0: FIX SYNTAX ERROR ---
+# Abbiamo corretto l'errore della lambda (riga 255)
 
 # --- DATI ---
-# Per ora lasciamo vuoti i percorsi dei libri per evitare crash
 BOOKS_DATA = {
     "Lodi Mattutine": [],
     "Libretto": [],
@@ -12,7 +11,6 @@ BOOKS_DATA = {
 }
 
 # --- MAPPA ICONE NATIVE (NON FILE SVG) ---
-# Usiamo ft.icons invece di file immagini
 ICON_MAP = {
     "sunrise": ft.icons.WB_SUNNY,
     "book-open": ft.icons.BOOK,
@@ -31,7 +29,6 @@ ICON_MAP = {
 
 LYRICS_TEXT = """
 Lo sai che ti amo...
-(Testo abbreviato per il test)
 """
 
 COLORS = {
@@ -55,14 +52,12 @@ def main(page: ft.Page):
     page.spacing = 0
     page.safe_area = ft.SafeArea(content=None)
     
-    # --- AUDIO DISATTIVATO PER IL TEST ---
-    # (Lo riattiveremo quando l'app partirà)
-    state_audio_playing = False
+    # Inizializziamo la SnackBar per evitare errori se la chiamiamo
+    page.snack_bar = ft.SnackBar(content=ft.Text("Ciao!"))
 
     # --- DATI ---
     def get_stored_data():
         try:
-            # Per ora niente foto profilo personalizzata, usiamo icona
             return {
                 "name": page.client_storage.get("user_name") or "Utente",
                 "notes": page.client_storage.get("user_notes") or "",
@@ -82,6 +77,13 @@ def main(page: ft.Page):
 
     def get_c(key):
         return COLORS["dark" if state["is_dark"] else "light"][key]
+
+    # --- FUNZIONE TEST MESSAGGIO ---
+    # Questa sostituisce la lambda che dava errore
+    def show_test_message(e):
+        page.snack_bar = ft.SnackBar(content=ft.Text("L'app funziona! (Test Mode)"))
+        page.snack_bar.open = True
+        page.update()
 
     # --- UI COMPONENTS ---
     
@@ -251,8 +253,8 @@ def main(page: ft.Page):
         cards_column.controls.clear()
         for item in [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]:
             title, icon_key = item
-            # Per il test, disabilitiamo apertura reader immagini
-            action = lambda e: page.snack_bar.open = True
+            # FIX: Usiamo la funzione definita prima invece della lambda
+            action = show_test_message
             
             cards_column.controls.append(ft.Container(
                 bgcolor=c("card"), border_radius=22, padding=15, height=80, on_click=action,
@@ -260,7 +262,7 @@ def main(page: ft.Page):
                 content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                     ft.Row(controls=[
                         ft.Container(width=50, height=50, bgcolor=c("icon_bg"), border_radius=14, alignment=ft.Alignment(0, 0), 
-                                     content=ft.Icon(ICON_MAP[icon_key], size=24, color=primary)), # QUI USO ICONA
+                                     content=ft.Icon(ICON_MAP[icon_key], size=24, color=primary)),
                         ft.Container(width=10),
                         ft.Text(title, size=16, weight="bold", color=fg)
                     ]),
@@ -339,6 +341,5 @@ def main(page: ft.Page):
     page.add(mobile_screen)
     update_interface_colors()
 
-# NOTA: Abbiamo RIMOSSO 'assets_dir' perché non usiamo file esterni
 if __name__ == "__main__":
     ft.app(target=main)
