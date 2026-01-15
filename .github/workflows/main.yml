@@ -17,11 +17,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install flet
-
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -32,20 +27,28 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.27.1'
+          flutter-version: '3.24.0' # Versione molto stabile
 
-      - name: Build APK
+      - name: Install Dependencies
         run: |
-          # 1. CONTROLLO DI SICUREZZA: Elenchiamo i file per essere sicuri che main.py ci sia
-          echo "LISTA DEI FILE PRESENTI:"
-          ls -R
+          # Disabilita analytics per evitare blocchi di rete
+          flutter config --no-analytics
           
-          # 2. COSTRUZIONE:
-          # NOTA IL PUNTO "." ALLA FINE -> significa "Costruisci questa cartella"
-          # Il comando "yes" accetta automaticamente le licenze Android
-          yes | flet build apk . --verbose
+          # Installa le librerie Python
+          pip install -r requirements.txt
+          pip install flet
           
-          # 3. RINOMINA:
+          # Pulisce la cache di Flutter per evitare errori vecchi
+          flutter clean
+
+      - name: Build APK (Verbose Mode)
+        run: |
+          # Il comando "yes" preme SÌ a tutte le licenze Android
+          # --verbose ci mostra cosa succede se si blocca ancora
+          yes | flet build apk --verbose
+          
+      - name: Rename APK
+        run: |
           mv build/apk/app-release.apk build/apk/M2G_App.apk
 
       - name: Upload APK
