@@ -28,15 +28,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # ABBIAMO AGGIORNATO LA VERSIONE QUI SOTTO
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.19.0'
+          flutter-version: '3.27.1'
 
+      # IL COMANDO "YES" RISPONDE IN AUTOMATICO ALLE DOMANDE
       - name: Build APK
         run: |
-          flet build apk --verbose
+          yes | flet build apk --verbose
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
