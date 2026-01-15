@@ -1,10 +1,9 @@
 import flet as ft
 
-# --- VERSIONE 39.0: RITORNO ALLE ORIGINI (FIXED) ---
-# Basata sulla v30 (l'unica che partiva), ma corretta graficamente.
-# - NIENTE MEMORIA (client_storage disattivato)
-# - NIENTE AUDIO (ft.Audio disattivato)
-# - NIENTE STACK (Niente rettangoli grigi)
+# --- VERSIONE 40.0: FIX GRAFICO "NO OMBRE" ---
+# 1. Abbiamo rimosso tutte le BoxShadow (che causavano i rettangoli grigi).
+# 2. Abbiamo rimosso "expand=True" (che causava problemi di dimensione).
+# 3. Usiamo una ListView unica per evitare sovrapposizioni.
 
 ICON_MAP = {
     "sunrise": "wb_sunny",
@@ -103,14 +102,14 @@ COLORS = {
 }
 
 def main(page: ft.Page):
-    # --- SETUP SICURISSIMO ---
+    # SETUP BASE
     page.title = "M2G App"
     page.padding = 0
     page.spacing = 0
     page.safe_area = ft.SafeArea(content=None)
-    page.bgcolor = "#f3f0e9" # Colore fisso background
+    page.bgcolor = "#f3f0e9" 
 
-    # Variabili semplici (Niente client_storage)
+    # Variabili Stato (Senza memoria per ora)
     current_page = "home"
     reader_title = ""
     user_name = "Utente"
@@ -119,17 +118,29 @@ def main(page: ft.Page):
     def get_c(key):
         return COLORS["light"][key]
 
-    # --- COSTRUZIONE PAGINE (Semplice) ---
+    # --- FUNZIONI CONTENUTO ---
 
     def build_home():
-        col = ft.Column(spacing=15, scroll="auto")
-        items = [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]
+        # Lista verticale semplice
+        col = ft.Column(spacing=15)
         
+        # Header Home
+        col.controls.append(ft.Container(
+            padding=ft.padding.only(top=30, bottom=20, left=20, right=20),
+            content=ft.Column(spacing=10, controls=[
+                ft.Container(width=60, height=60, bgcolor=get_c("primary"), border_radius=15, alignment=ft.Alignment(0,0), content=ft.Text("M2G", color="white", size=20, weight="bold")),
+                ft.Text(f"Bentornato, {user_name}", size=22, color=get_c("text"))
+            ])
+        ))
+
+        # Cards
+        items = [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]
         for title, icon in items:
             col.controls.append(
                 ft.Container(
                     bgcolor=get_c("card"), height=80, border_radius=20, padding=15,
-                    shadow=ft.BoxShadow(blur_radius=5, color="#11000000", offset=ft.Offset(0,4)),
+                    # NIENTE OMBRA QUI -> Risolve il rettangolo grigio
+                    border=ft.border.all(1, "#eeeeee"), 
                     on_click=lambda e, t=title: go_to_reader(t),
                     content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                         ft.Row(controls=[
@@ -141,128 +152,109 @@ def main(page: ft.Page):
                     ])
                 )
             )
-        col.controls.append(ft.Container(height=50))
+        
+        # Spazio per la navbar
+        col.controls.append(ft.Container(height=100))
+        
         return ft.Container(padding=20, content=col)
 
     def build_user():
-        return ft.Container(padding=20, content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20, scroll="auto", controls=[
-            ft.Container(height=10),
-            ft.Icon("person", size=80, color=get_c("primary")),
-            ft.Text("Profilo", size=20, weight="bold", color=get_c("text")),
-            ft.TextField(value=user_name, label="Nome", border_color=get_c("primary")),
-            ft.Divider(),
-            ft.Container(
-                bgcolor=get_c("primary"), width=300, padding=15, border_radius=10,
-                on_click=lambda e: go_to_notes(),
-                content=ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[ft.Icon(ICON_MAP["edit"], color="white"), ft.Text("APRI NOTE", color="white", weight="bold")])
-            )
-        ]))
+        col = ft.Column(spacing=20, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        
+        col.controls.append(ft.Container(height=40))
+        col.controls.append(ft.Icon("person", size=80, color=get_c("primary")))
+        col.controls.append(ft.Text("Profilo", size=20, weight="bold", color=get_c("text")))
+        col.controls.append(ft.TextField(value=user_name, label="Nome", border_color=get_c("primary")))
+        col.controls.append(ft.Divider())
+        col.controls.append(ft.Container(
+            bgcolor=get_c("primary"), width=300, padding=15, border_radius=10,
+            on_click=lambda e: go_to_notes(),
+            content=ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[ft.Icon(ICON_MAP["edit"], color="white"), ft.Text("APRI NOTE", color="white", weight="bold")])
+        ))
+        col.controls.append(ft.Container(height=100))
 
-    def build_notes():
-        return ft.Column(expand=True, controls=[
-            ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                ft.IconButton(icon=ICON_MAP["arrow-left"], icon_color=get_c("text"), on_click=lambda e: go_to_user()),
-                ft.Text("Note", size=20, weight="bold", color=get_c("text")),
-                ft.Icon(ICON_MAP["save"], color=get_c("primary"))
-            ])),
-            ft.Container(expand=True, bgcolor=get_c("input_bg"), border_radius=10, padding=15, margin=10, content=ft.TextField(value=user_notes, multiline=True, border=ft.InputBorder.NONE, color=get_c("text")))
-        ])
+        return ft.Container(padding=20, content=col)
 
     def build_reader(title):
-        content_body = ft.Column(scroll="auto", expand=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        col = ft.Column(spacing=20, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         
+        # Header Reader
+        col.controls.append(ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+            ft.IconButton(icon=ICON_MAP["arrow-left"], icon_color=get_c("text"), on_click=lambda e: go_to_home()),
+            ft.Text(title, size=20, weight="bold", color=get_c("text")),
+            ft.Container(width=40)
+        ])))
+        col.controls.append(ft.Divider(height=1))
+
         if title == "Inno":
-            content_body.controls.append(ft.Container(padding=20, content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                ft.Icon(ICON_MAP["music"], size=50, color=get_c("primary")),
-                ft.Container(height=20),
-                ft.Text(LYRICS_TEXT, text_align="center", color=get_c("text"), size=16)
-            ])))
+            col.controls.append(ft.Icon(ICON_MAP["music"], size=50, color=get_c("primary")))
+            col.controls.append(ft.Text(LYRICS_TEXT, text_align="center", color=get_c("text"), size=16))
         else:
-             content_body.controls.append(ft.Container(padding=20, content=ft.Text(f"Sezione: {title}", color=get_c("text"))))
+            col.controls.append(ft.Text(f"Sezione: {title}", color=get_c("text")))
+        
+        col.controls.append(ft.Container(height=50))
+        return ft.Container(padding=10, content=col)
 
-        return ft.Column(expand=True, controls=[
-            ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                ft.IconButton(icon=ICON_MAP["arrow-left"], icon_color=get_c("text"), on_click=lambda e: go_to_home()),
-                ft.Text(title, size=20, weight="bold", color=get_c("text")),
-                ft.Container(width=40)
-            ])),
-            ft.Divider(height=1),
-            content_body
-        ])
+    def build_notes():
+        col = ft.Column(spacing=10)
+        col.controls.append(ft.Container(padding=10, content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+            ft.IconButton(icon=ICON_MAP["arrow-left"], icon_color=get_c("text"), on_click=lambda e: go_to_user()),
+            ft.Text("Note", size=20, weight="bold", color=get_c("text")),
+            ft.Icon(ICON_MAP["save"], color=get_c("primary"))
+        ])))
+        col.controls.append(ft.TextField(value=user_notes, multiline=True, min_lines=10, border=ft.InputBorder.NONE, color=get_c("text"), bgcolor="white"))
+        return ft.Container(padding=10, content=col)
 
-    # --- NAVIGAZIONE SEMPLICE ---
-    # Niente Stack, niente nascondere. Ricostruiamo la pagina principale.
+    # --- RENDERER ---
     
     def render():
         page.controls.clear()
         
-        # 1. HEADER (Solo Home/User)
-        if current_page in ["home", "user"]:
-            header = ft.Container(
-                padding=ft.padding.only(top=30, bottom=10, left=20, right=20),
-                content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10, controls=[
-                    ft.Container(width=60, height=60, bgcolor=get_c("primary"), border_radius=15, alignment=ft.Alignment(0,0), content=ft.Text("M2G", color="white", size=20, weight="bold")),
-                    ft.Text(f"Bentornato, {user_name}", size=22, color=get_c("text"))
-                ])
-            )
-            page.add(header)
+        # CONTENUTO PRINCIPALE (Scrollabile)
+        main_content = None
+        if current_page == "home": main_content = build_home()
+        elif current_page == "user": main_content = build_user()
+        elif current_page == "notes": main_content = build_notes()
+        elif current_page == "reader": main_content = build_reader(reader_title)
 
-        # 2. BODY (Contenuto variabile)
-        body = ft.Container(expand=True)
-        if current_page == "home":
-            body.content = build_home()
-        elif current_page == "user":
-            body.content = build_user()
-        elif current_page == "notes":
-            body.content = build_notes()
-        elif current_page == "reader":
-            body.content = build_reader(reader_title)
-        
-        page.add(body)
+        # Usiamo ListView per permettere lo scroll di tutto
+        lv = ft.ListView(expand=True, controls=[main_content])
+        page.add(lv)
 
-        # 3. NAVBAR (Solo Home/User)
+        # NAVBAR FLOTTANTE (Solo Home/User)
         if current_page in ["home", "user"]:
             btn_h_bg = get_c("primary") if current_page == "home" else "white"
             btn_h_fg = "white" if current_page == "home" else get_c("text")
             btn_u_bg = get_c("primary") if current_page == "user" else "white"
             btn_u_fg = "white" if current_page == "user" else get_c("text")
 
+            # Posizioniamo la navbar in basso usando un Stack fittizio o overlay
+            # Ma per semplicità ora la mettiamo fissa in basso
             navbar = ft.Container(
-                padding=15, bgcolor="white",
+                bgcolor="white", padding=15, 
                 border_radius=ft.border_radius.only(top_left=20, top_right=20),
-                shadow=ft.BoxShadow(blur_radius=10, color="#11000000"),
+                border=ft.border.only(top=ft.border.BorderSide(1, "#eeeeee")),
                 content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
                     ft.Container(padding=10, border_radius=10, bgcolor=btn_h_bg, on_click=lambda e: go_to_home(), content=ft.Row([ft.Icon(ICON_MAP["home"], color=btn_h_fg), ft.Text("HOME", color=btn_h_fg, weight="bold")])),
                     ft.Container(padding=10, border_radius=10, bgcolor=btn_u_bg, on_click=lambda e: go_to_user(), content=ft.Row([ft.Icon(ICON_MAP["user"], color=btn_u_fg), ft.Text("PROFILO", color=btn_u_fg, weight="bold")]))
                 ])
             )
-            page.add(navbar)
+            # Aggiungiamo la navbar sopra la lista (in un layout fisso)
+            page.overlay.append(ft.Container(
+                content=navbar,
+                alignment=ft.alignment.bottom_center,
+                padding=0,
+                margin=0
+            ))
 
         page.update()
 
-    # Funzioni di cambio pagina
-    def go_to_home(e=None):
-        nonlocal current_page
-        current_page = "home"
-        render()
+    # Funzioni Navigazione
+    def go_to_home(e=None): nonlocal current_page; page.overlay.clear(); current_page = "home"; render()
+    def go_to_user(e=None): nonlocal current_page; page.overlay.clear(); current_page = "user"; render()
+    def go_to_notes(e=None): nonlocal current_page; page.overlay.clear(); current_page = "notes"; render()
+    def go_to_reader(t): nonlocal current_page, reader_title; page.overlay.clear(); current_page = "reader"; reader_title = t; render()
 
-    def go_to_user(e=None):
-        nonlocal current_page
-        current_page = "user"
-        render()
-
-    def go_to_notes(e=None):
-        nonlocal current_page
-        current_page = "notes"
-        render()
-
-    def go_to_reader(title):
-        nonlocal current_page, reader_title
-        current_page = "reader"
-        reader_title = title
-        render()
-
-    # AVVIO
     render()
 
 if __name__ == "__main__":
