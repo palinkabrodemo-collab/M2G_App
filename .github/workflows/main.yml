@@ -1,10 +1,6 @@
 name: Build Android APK
-
-# QUESTA È LA PARTE CHE MANCAVA (I TRIGGER)
 on:
-  # Fa partire la build quando premi il pulsante manuale
   workflow_dispatch:
-  # Fa partire la build quando carichi file sul ramo main
   push:
     branches:
       - main
@@ -40,10 +36,16 @@ jobs:
 
       - name: Build APK
         run: |
-          # Risponde SI automaticamente
-          yes | flet build apk main.py --verbose
+          # 1. CONTROLLO DI SICUREZZA: Elenchiamo i file per essere sicuri che main.py ci sia
+          echo "LISTA DEI FILE PRESENTI:"
+          ls -R
           
-          # Rinomina il file
+          # 2. COSTRUZIONE:
+          # NOTA IL PUNTO "." ALLA FINE -> significa "Costruisci questa cartella"
+          # Il comando "yes" accetta automaticamente le licenze Android
+          yes | flet build apk . --verbose
+          
+          # 3. RINOMINA:
           mv build/apk/app-release.apk build/apk/M2G_App.apk
 
       - name: Upload APK
