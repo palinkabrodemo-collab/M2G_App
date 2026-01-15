@@ -27,25 +27,23 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.24.0' # Versione molto stabile
+          flutter-version: '3.24.0'
 
       - name: Install Dependencies
         run: |
-          # Disabilita analytics per evitare blocchi di rete
+          # Disabilita analytics
           flutter config --no-analytics
           
-          # Installa le librerie Python
+          # Installa librerie Python
           pip install -r requirements.txt
           pip install flet
           
-          # Pulisce la cache di Flutter per evitare errori vecchi
-          flutter clean
+          # NOTA: Abbiamo rimosso 'flutter clean' perché causava l'errore pubspec.yaml
 
       - name: Build APK (Verbose Mode)
         run: |
-          # Il comando "yes" preme SÌ a tutte le licenze Android
-          # --verbose ci mostra cosa succede se si blocca ancora
-          yes | flet build apk --verbose
+          # Flet creerà il progetto Flutter qui
+          flet build apk --verbose
           
       - name: Rename APK
         run: |
