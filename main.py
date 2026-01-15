@@ -1,7 +1,7 @@
 import flet as ft
 
-# --- VERSIONE 27.0: FIX SYNTAX ERROR ---
-# Abbiamo corretto l'errore della lambda (riga 255)
+# --- VERSIONE 28.0: FIX ICONE (STRINGHE) ---
+# Usiamo stringhe esplicite per evitare AttributeError
 
 # --- DATI ---
 BOOKS_DATA = {
@@ -10,21 +10,23 @@ BOOKS_DATA = {
     "Foto ricordo": [] 
 }
 
-# --- MAPPA ICONE NATIVE (NON FILE SVG) ---
+# --- MAPPA ICONE (STRINGHE SICURE) ---
+# Usiamo i nomi delle Material Icons come stringhe.
+# Questo impedisce all'app di crashare se una costante non esiste.
 ICON_MAP = {
-    "sunrise": ft.icons.WB_SUNNY,
-    "book-open": ft.icons.BOOK,
-    "music": ft.icons.MUSIC_NOTE, 
-    "camera": ft.icons.CAMERA_ALT,
-    "chevron-right": ft.icons.CHEVRON_RIGHT,
-    "home": ft.icons.HOME, 
-    "user": ft.icons.PERSON,
-    "arrow-left": ft.icons.ARROW_BACK,
-    "save": ft.icons.SAVE, 
-    "edit": ft.icons.EDIT,
-    "play": ft.icons.PLAY_CIRCLE,
-    "pause": ft.icons.PAUSE_CIRCLE, 
-    "stop": ft.icons.STOP_CIRCLE
+    "sunrise": "wb_sunny",
+    "book-open": "menu_book",
+    "music": "music_note", 
+    "camera": "camera_alt",
+    "chevron-right": "chevron_right",
+    "home": "home", 
+    "user": "person",
+    "arrow-left": "arrow_back",
+    "save": "save", 
+    "edit": "edit",
+    "play": "play_circle",
+    "pause": "pause_circle", 
+    "stop": "stop_circle"
 }
 
 LYRICS_TEXT = """
@@ -52,7 +54,7 @@ def main(page: ft.Page):
     page.spacing = 0
     page.safe_area = ft.SafeArea(content=None)
     
-    # Inizializziamo la SnackBar per evitare errori se la chiamiamo
+    # Inizializziamo la SnackBar
     page.snack_bar = ft.SnackBar(content=ft.Text("Ciao!"))
 
     # --- DATI ---
@@ -78,8 +80,7 @@ def main(page: ft.Page):
     def get_c(key):
         return COLORS["dark" if state["is_dark"] else "light"][key]
 
-    # --- FUNZIONE TEST MESSAGGIO ---
-    # Questa sostituisce la lambda che dava errore
+    # --- FUNZIONE TEST ---
     def show_test_message(e):
         page.snack_bar = ft.SnackBar(content=ft.Text("L'app funziona! (Test Mode)"))
         page.snack_bar.open = True
@@ -92,12 +93,11 @@ def main(page: ft.Page):
     header_logo = ft.Container(width=65, height=65, border_radius=18, alignment=ft.Alignment(0, 0), content=ft.Text("M2G", color="white", size=22, weight="w300"))
     header_container = ft.Container(padding=ft.padding.only(top=20, bottom=20, left=20, right=20), content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15, controls=[header_logo, txt_welcome_name]))
 
-    # User Page - Usimamo ICONA invece di IMMAGINE
-    img_profile_view = ft.Icon(ft.icons.PERSON, size=100, color=get_c("primary"))
+    # User Page - Icona stringa "person"
+    img_profile_view = ft.Icon(name="person", size=100, color=get_c("primary"))
     container_profile_border = ft.Container(content=img_profile_view, border_radius=100, padding=20, border=ft.border.all(3, "transparent"))
     
     txt_name_input = ft.TextField(value=data["name"], label="Il tuo nome", max_length=14)
-    # Disabilitato caricamento foto per ora
     btn_upload_photo = ft.ElevatedButton("CARICAMENTO FOTO (DISABILITATO TEST)", color="white", disabled=True)
     
     btn_open_notes_user = ft.Container(border_radius=10, padding=15, width=300) 
@@ -135,9 +135,9 @@ def main(page: ft.Page):
     )
     lines_background = ft.Column(spacing=0)
     
-    # Pulsanti note con ICONE
-    btn_close_notes = ft.Container(padding=10, content=ft.Icon(ICON_MAP["arrow-left"], size=24))
-    btn_save_notes = ft.Container(padding=10, content=ft.Icon(ICON_MAP["save"], size=24))
+    # Pulsanti note con ICONE (Stringhe)
+    btn_close_notes = ft.Container(padding=10, content=ft.Icon(name=ICON_MAP["arrow-left"], size=24))
+    btn_save_notes = ft.Container(padding=10, content=ft.Icon(name=ICON_MAP["save"], size=24))
     
     notes_container = ft.Container(
         expand=True, padding=20,
@@ -162,7 +162,7 @@ def main(page: ft.Page):
     reader_title = ft.Text("Titolo", size=20, weight="bold")
     reader_col = ft.Column(spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     reader_scroll = ft.Column(scroll="auto", expand=True, controls=[reader_col], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-    btn_close_reader = ft.Container(padding=10, content=ft.Icon(ICON_MAP["arrow-left"], size=24))
+    btn_close_reader = ft.Container(padding=10, content=ft.Icon(name=ICON_MAP["arrow-left"], size=24))
     
     reader_container = ft.Container(
         expand=True, padding=0,
@@ -181,9 +181,9 @@ def main(page: ft.Page):
     btn_home_container = ft.Container(border_radius=10, padding=10, width=140)
     btn_user_container = ft.Container(border_radius=10, padding=10, width=140)
     
-    # Nav Icons (Non immagini!)
-    nav_home_img = ft.Icon(ICON_MAP["home"], size=24)
-    nav_user_img = ft.Icon(ICON_MAP["user"], size=24)
+    # Nav Icons
+    nav_home_img = ft.Icon(name=ICON_MAP["home"], size=24)
+    nav_user_img = ft.Icon(name=ICON_MAP["user"], size=24)
 
     custom_navbar = ft.Container(
         padding=15, border_radius=ft.border_radius.only(top_left=20, top_right=20),
@@ -208,7 +208,7 @@ def main(page: ft.Page):
         
         btn_open_notes_user.bgcolor = primary
         btn_open_notes_user.content = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-            ft.Icon(ICON_MAP["edit"], size=20, color="white"),
+            ft.Icon(name=ICON_MAP["edit"], size=20, color="white"),
             ft.Text("APRI LE TUE NOTE", color="white", weight="bold")
         ])
         
@@ -239,13 +239,13 @@ def main(page: ft.Page):
         is_home = dynamic_content.content == cards_column
         btn_home_container.bgcolor = primary if is_home else c("nav_bg")
         btn_home_container.content = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-            ft.Icon(ICON_MAP["home"], size=24, color="white" if is_home else fg),
+            ft.Icon(name=ICON_MAP["home"], size=24, color="white" if is_home else fg),
             ft.Text("HOME", color="white" if is_home else fg, weight="bold")
         ])
         
         btn_user_container.bgcolor = primary if not is_home else c("nav_bg")
         btn_user_container.content = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-            ft.Icon(ICON_MAP["user"], size=24, color="white" if not is_home else fg),
+            ft.Icon(name=ICON_MAP["user"], size=24, color="white" if not is_home else fg),
             ft.Text("PROFILO", color="white" if not is_home else fg, weight="bold")
         ])
 
@@ -253,7 +253,6 @@ def main(page: ft.Page):
         cards_column.controls.clear()
         for item in [("Lodi Mattutine", "sunrise"), ("Libretto", "book-open"), ("Inno", "music"), ("Foto ricordo", "camera")]:
             title, icon_key = item
-            # FIX: Usiamo la funzione definita prima invece della lambda
             action = show_test_message
             
             cards_column.controls.append(ft.Container(
@@ -262,11 +261,11 @@ def main(page: ft.Page):
                 content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                     ft.Row(controls=[
                         ft.Container(width=50, height=50, bgcolor=c("icon_bg"), border_radius=14, alignment=ft.Alignment(0, 0), 
-                                     content=ft.Icon(ICON_MAP[icon_key], size=24, color=primary)),
+                                     content=ft.Icon(name=ICON_MAP[icon_key], size=24, color=primary)),
                         ft.Container(width=10),
                         ft.Text(title, size=16, weight="bold", color=fg)
                     ]),
-                    ft.Icon(ICON_MAP["chevron-right"], size=24, color="#dddddd")
+                    ft.Icon(name=ICON_MAP["chevron-right"], size=24, color="#dddddd")
                 ])
             ))
         cards_column.controls.append(ft.Container(height=50))
