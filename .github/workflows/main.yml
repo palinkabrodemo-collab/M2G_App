@@ -23,27 +23,18 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          flutter-version: '3.24.0'
+      # Rimuoviamo il setup manuale di Flutter per lasciare che Flet
+      # scarichi esattamente la versione che vuole lui.
 
       - name: Install Dependencies
         run: |
-          # Disabilita analytics
-          flutter config --no-analytics
-          
-          # Installa librerie Python
           pip install -r requirements.txt
           pip install flet
-          
-          # NOTA: Abbiamo rimosso 'flutter clean' perché causava l'errore pubspec.yaml
 
-      - name: Build APK (Verbose Mode)
+      - name: Build APK (Auto-Accept)
         run: |
-          # Flet creerà il progetto Flutter qui
-          flet build apk --verbose
+          # "yes" preme automaticamente "y" quando Flet chiede di scaricare Flutter
+          yes | flet build apk --verbose
           
       - name: Rename APK
         run: |
