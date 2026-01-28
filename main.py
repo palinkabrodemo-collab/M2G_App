@@ -1,74 +1,81 @@
 import flet as ft
 
-# --- VERSIONE 62.0: IL "TEST BLU" TRAVESTITO ---
-# Questa versione usa ESATTAMENTE la struttura della v58 (quella che funzionava).
-# Cambiamo solo i colori e il testo.
-# NESSUN layout complesso (Column expand, Stack, Overlay) che possa bloccare Android.
+# --- VERSIONE 63.0: LOGICA "TEST BLU" (NO SCROLL) ---
+# DIAGNOSI DEFINITIVA: L'attivazione di page.scroll sulle versioni precedenti causava lo schermo bianco.
+# SOLUZIONE: Rimosso page.scroll. Usiamo l'addizione diretta (page.add) come nella v58 (Blue) che funzionava.
 
 def main(page: ft.Page):
-    # 1. SETUP (Copia esatta del Test Blu, solo cambio colore)
+    # 1. SETUP IDENTICO AL TEST BLU (v58)
     page.title = "M2G App"
-    page.bgcolor = "#f3f0e9" # Beige (invece di Blue)
+    page.bgcolor = "#f3f0e9" # Beige
     page.padding = 20
+    page.spacing = 10        # Spazio tra gli elementi
     
-    # IMPORTANTE: Nel test blu non c'era page.scroll="auto". 
-    # Usiamo "adaptive" che è più sicuro su mobile, o niente.
-    page.scroll = "adaptive"
-
+    # CRUCIALE: NESSUN SCROLL IMPOSTATO.
+    # Questo è ciò che rendeva stabile la versione 58.
+    
     # Pulizia
     page.clean()
 
-    # --- DEFINIZIONE ELEMENTI ---
-    # Invece di fare layout complessi, creiamo oggetti semplici e li buttiamo dentro.
+    # --- DEFINIZIONE COLORI ---
+    c_primary = "#6a8a73" # Verde
+    c_text = "#1a1a1a"    # Nero
 
-    # 1. LOGO M2G
-    logo_box = ft.Container(
-        width=60, height=60, bgcolor="#6a8a73", # Verde
-        border_radius=15, alignment=ft.alignment.center,
-        content=ft.Text("M2G", color="white", size=20, weight="bold")
-    )
-
-    # 2. TITOLO
-    titolo = ft.Text("Bentornato, Utente", size=22, weight="bold", color="#1a1a1a")
-
-    # 3. CARD DI TEST (Una sola per vedere se va)
-    card_prova = ft.Container(
-        bgcolor="white",
-        height=80,
-        border_radius=15,
-        padding=15,
-        content=ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            controls=[
-                ft.Row(controls=[
-                    ft.Container(
-                        width=50, height=50, bgcolor="#dbe4de", 
-                        border_radius=12, alignment=ft.alignment.center,
-                        # Icona nativa stringa (sicura)
-                        content=ft.Icon("wb_sunny", color="#6a8a73", size=24)
-                    ),
-                    ft.Container(width=10),
-                    ft.Text("Lodi Mattutine", size=16, weight="bold", color="#1a1a1a")
-                ]),
-                ft.Icon("chevron_right", color="#cccccc")
-            ]
-        )
-    )
-
-    # --- AGGIUNTA DIRETTA (STILE TEST BLU) ---
-    # Niente colonne wrapper, niente expand. Dritto nella pagina.
-    page.add(logo_box)
-    page.add(ft.Container(height=10)) # Spazietto
-    page.add(titolo)
-    page.add(ft.Container(height=30)) # Spazio
-    page.add(card_prova)
+    # --- COSTRUZIONE ELEMENTI (Semplici Container statici) ---
     
-    # Aggiungo un testo di debug per essere sicuro
+    # 1. HEADER
+    header = ft.Column(spacing=5, controls=[
+        ft.Container(height=20), # Spazio tetto
+        ft.Row(controls=[
+            ft.Container(
+                width=60, height=60, bgcolor=c_primary, 
+                border_radius=15, alignment=ft.alignment.center,
+                content=ft.Text("M2G", color="white", size=20, weight="bold")
+            ),
+        ]),
+        ft.Text("Bentornato, Utente", size=22, weight="bold", color=c_text)
+    ])
+
+    # 2. CARD HELPER (Senza logiche complesse)
+    def simple_card(title, icon_name):
+        return ft.Container(
+            bgcolor="white",
+            height=80,
+            border_radius=15,
+            padding=15,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                controls=[
+                    ft.Row(controls=[
+                        ft.Container(
+                            width=50, height=50, bgcolor="#dbe4de", 
+                            border_radius=12, alignment=ft.alignment.center,
+                            # Icona stringa semplice
+                            content=ft.Icon(icon_name, color=c_primary, size=24)
+                        ),
+                        ft.Container(width=10),
+                        ft.Text(title, size=16, weight="bold", color=c_text)
+                    ]),
+                    ft.Icon("chevron_right", color="#cccccc")
+                ]
+            )
+        )
+
+    # --- AGGIUNTA DIRETTA (Stile v58) ---
+    page.add(header)
+    page.add(ft.Container(height=10))
+    
+    page.add(simple_card("Lodi Mattutine", "wb_sunny"))
+    page.add(simple_card("Libretto", "menu_book"))
+    page.add(simple_card("Inno", "music_note"))
+    page.add(simple_card("Foto ricordo", "photo_camera"))
+    
+    # Test di verifica
     page.add(ft.Container(height=20))
-    page.add(ft.Text("Se vedi questo, la grafica è salva.", color="red"))
+    page.add(ft.Text("Grafica caricata con successo.", color="green", size=12))
 
     page.update()
 
-# Nessun assets_dir
+# NESSUNA CARTELLA ASSETS CONFIGURATA
 if __name__ == "__main__":
     ft.app(target=main)
