@@ -1,13 +1,12 @@
 import flet as ft
 import traceback
 
-# --- VERSIONE 53.0: FIX SINTASSI ICONE ---
-# 1. RIMOSSO "name=" da tutte le ft.Icon. 
-#    Esempio: ft.Icon(name="home") -> ft.Icon("home")
-# 2. Questo risolve l'errore rosso TypeError appena visto.
-# 3. Manteniamo il debug visivo per sicurezza.
+# --- VERSIONE 54.0: COMPATIBILITÀ TOTALE (FIX ERRORI) ---
+# 1. FIX ICONE: Rimossi tutti i "name=" -> ft.Icon("home")
+# 2. FIX ALLINEAMENTO: Rimossi ft.alignment.* -> Usiamo ft.Alignment(0, 1)
+# 3. DEBUG: Mantenuto il sistema che mostra gli errori a schermo se qualcosa va storto.
 
-# Mappa Icone (Stringhe)
+# Mappa Icone (Stringhe semplici)
 ICON_MAP = {
     "sunrise": "wb_sunny",
     "book-open": "menu_book",
@@ -103,12 +102,12 @@ COLORS = {
 }
 
 def main(page: ft.Page):
-    # Setup di base
+    # Setup sicuro
     page.title = "M2G App"
     page.bgcolor = "#f3f0e9"
     page.padding = 0
     page.spacing = 0
-    page.scroll = "auto" # Fondamentale per evitare il grigio
+    page.scroll = "auto" # Fix per lo schermo grigio
 
     # --- STATO ---
     state = {
@@ -124,7 +123,7 @@ def main(page: ft.Page):
     def get_c(key):
         return COLORS["light"][key]
 
-    # Avvolgiamo tutto nel Try-Except per sicurezza
+    # Blocco di sicurezza globale
     try:
 
         # --- MEMORIA ---
@@ -146,16 +145,17 @@ def main(page: ft.Page):
                     page.update()
                 except: pass
 
-        # --- COSTRUTTORI PAGINE ---
+        # --- COSTRUTTORI ---
 
         def build_home():
             col = ft.Column(spacing=15)
             
             # Header
+            # Fix alignment: ft.Alignment(0, 0) è il centro matematico
             col.controls.append(ft.Container(
                 padding=ft.padding.only(top=20, bottom=20),
                 content=ft.Column(spacing=10, controls=[
-                    ft.Container(width=60, height=60, bgcolor=get_c("primary"), border_radius=15, alignment=ft.Alignment(0,0), content=ft.Text("M2G", color="white", size=20, weight="bold")),
+                    ft.Container(width=60, height=60, bgcolor=get_c("primary"), border_radius=15, alignment=ft.Alignment(0, 0), content=ft.Text("M2G", color="white", size=20, weight="bold")),
                     ft.Text(f"Bentornato, {state['name']}", size=22, color=get_c("text"))
                 ])
             ))
@@ -170,13 +170,12 @@ def main(page: ft.Page):
                         on_click=lambda e, t=title: navigate("reader", t),
                         content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                             ft.Row(controls=[
-                                ft.Container(width=50, height=50, bgcolor=get_c("icon_bg"), border_radius=15, alignment=ft.Alignment(0,0), 
-                                             # FIX 1: Tolto "name="
+                                # FIX 1: ft.Icon(STRINGA) senza name=
+                                ft.Container(width=50, height=50, bgcolor=get_c("icon_bg"), border_radius=15, alignment=ft.Alignment(0, 0), 
                                              content=ft.Icon(ICON_MAP[icon_key], size=28, color=get_c("primary"))),
                                 ft.Container(width=10),
                                 ft.Text(title, size=16, weight="bold", color=get_c("text"))
                             ]),
-                            # FIX 2: Tolto "name="
                             ft.Icon("chevron_right", color="#cccccc")
                         ])
                     )
@@ -187,7 +186,6 @@ def main(page: ft.Page):
         def build_user():
             col = ft.Column(spacing=20, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
             col.controls.append(ft.Container(height=40))
-            # FIX 3: Tolto "name="
             col.controls.append(ft.Icon("person", size=80, color=get_c("primary")))
             col.controls.append(ft.Text("Profilo", size=20, weight="bold", color=get_c("text")))
             
@@ -201,7 +199,6 @@ def main(page: ft.Page):
                 bgcolor=get_c("primary"), width=300, padding=15, border_radius=10,
                 on_click=lambda e: navigate("notes"),
                 content=ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                    # FIX 4: Tolto "name="
                     ft.Icon("edit", color="white"), ft.Text("APRI NOTE", color="white", weight="bold")
                 ])
             ))
@@ -210,9 +207,7 @@ def main(page: ft.Page):
 
         def build_reader(title):
             col = ft.Column(spacing=20, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-            # FIX 5: Tolto "name=" in IconButton se presente, qui usiamo icon="nome" (standard per IconButton)
             back_btn = ft.IconButton(icon="arrow_back", icon_color=get_c("text"), on_click=lambda e: navigate("home"))
-            
             col.controls.append(ft.Container(padding=ft.padding.symmetric(horizontal=10, vertical=20), content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                 back_btn, ft.Text(title, size=20, weight="bold", color=get_c("text")), ft.Container(width=40)
             ])))
@@ -229,7 +224,6 @@ def main(page: ft.Page):
                     if state["audio_playing"]: audio_player.play()
                     else: audio_player.pause()
                     
-                    # FIX 6: Tolto "name="
                     btn_play.content.controls[0].name = icon
                     btn_play.content.controls[1].value = text
                     btn_play.bgcolor = color
@@ -239,7 +233,6 @@ def main(page: ft.Page):
                     bgcolor=get_c("primary"), padding=15, border_radius=30, width=160,
                     on_click=toggle_audio,
                     content=ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                        # FIX 7: Tolto "name="
                         ft.Icon("play_arrow", color="white"), ft.Text("RIPRODUCI", color="white", weight="bold")
                     ])
                 )
@@ -259,7 +252,6 @@ def main(page: ft.Page):
             col.controls.append(ft.Container(padding=ft.padding.symmetric(horizontal=10, vertical=20), content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                 ft.IconButton(icon="arrow_back", icon_color=get_c("text"), on_click=lambda e: navigate("user")),
                 ft.Text("Note", size=20, weight="bold", color=get_c("text")),
-                # FIX 8: Tolto "name="
                 ft.Icon("save", color=get_c("primary"))
             ])))
             col.controls.append(ft.TextField(value=state["notes"], multiline=True, min_lines=15, border=ft.InputBorder.NONE, color=get_c("text"), bgcolor="white", hint_text="Scrivi qui...", on_change=save_notes, content_padding=20))
@@ -280,33 +272,30 @@ def main(page: ft.Page):
             elif state["page"] == "notes": page.add(build_notes())
             elif state["page"] == "reader": page.add(build_reader(state["reader_title"]))
 
-            # NAVBAR
             if state["page"] in ["home", "user"]:
-                # Rimuoviamo l'overlay complesso e usiamo una navbar semplice a fine pagina per ora
-                # per evitare altri errori strani. Se funziona tutto, la rimettiamo flottante.
+                # Preparazione colori
                 btn_h_bg = get_c("primary") if state["page"] == "home" else "white"
                 btn_h_fg = "white" if state["page"] == "home" else get_c("text")
                 btn_u_bg = get_c("primary") if state["page"] == "user" else "white"
                 btn_u_fg = "white" if state["page"] == "user" else get_c("text")
 
+                # NAVBAR
                 navbar = ft.Container(
                     bgcolor="white", padding=10, 
                     border_radius=ft.border_radius.only(top_left=20, top_right=20),
                     border=ft.border.only(top=ft.border.BorderSide(1, "#eeeeee")),
                     content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
                         ft.Container(padding=10, border_radius=10, bgcolor=btn_h_bg, on_click=lambda e: navigate("home"), 
-                                     # FIX 9: Tolto "name="
                                      content=ft.Row([ft.Icon("home", color=btn_h_fg), ft.Text("HOME", color=btn_h_fg, weight="bold")])),
                         ft.Container(padding=10, border_radius=10, bgcolor=btn_u_bg, on_click=lambda e: navigate("user"), 
-                                     # FIX 10: Tolto "name="
                                      content=ft.Row([ft.Icon("person", color=btn_u_fg), ft.Text("PROFILO", color=btn_u_fg, weight="bold")]))
                     ])
                 )
                 
-                # Aggiungiamo la navbar in overlay in modo sicuro
+                # FIX 2: Usiamo ft.Alignment(0, 1) invece di bottom_center
                 page.overlay.clear()
                 if state["audio_playing"] and audio_player: page.overlay.append(audio_player)
-                page.overlay.append(ft.Container(content=navbar, alignment=ft.alignment.bottom_center))
+                page.overlay.append(ft.Container(content=navbar, alignment=ft.Alignment(0, 1)))
 
             page.update()
 
