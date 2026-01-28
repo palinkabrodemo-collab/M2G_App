@@ -1,96 +1,74 @@
 import flet as ft
 
-# --- VERSIONE 61.0: IL METODO "TEST BLU" EVOLUTO ---
-# DIAGNOSI: Il colpevole dello schermo bianco era "page.scroll = 'auto'".
-# SOLUZIONE: Togliamo lo scroll dalla pagina e lo mettiamo in una Colonna controllata.
+# --- VERSIONE 62.0: IL "TEST BLU" TRAVESTITO ---
+# Questa versione usa ESATTAMENTE la struttura della v58 (quella che funzionava).
+# Cambiamo solo i colori e il testo.
+# NESSUN layout complesso (Column expand, Stack, Overlay) che possa bloccare Android.
 
 def main(page: ft.Page):
-    # 1. SETUP (Stesso del Test Blu che funzionava)
+    # 1. SETUP (Copia esatta del Test Blu, solo cambio colore)
     page.title = "M2G App"
-    page.bgcolor = "#f3f0e9" # Beige
-    page.padding = 0
-    page.spacing = 0
+    page.bgcolor = "#f3f0e9" # Beige (invece di Blue)
+    page.padding = 20
     
-    # CRUCIALE: DISATTIVIAMO LO SCROLL DELLA PAGINA
-    # Se attivato sulla root, su Android causa il collasso (schermo bianco)
-    page.scroll = None 
+    # IMPORTANTE: Nel test blu non c'era page.scroll="auto". 
+    # Usiamo "adaptive" che è più sicuro su mobile, o niente.
+    page.scroll = "adaptive"
 
-    # --- DEFINIZIONE COLORI ---
-    c_primary = "#6a8a73" # Verde
-    c_text = "#1a1a1a"    # Nero
+    # Pulizia
+    page.clean()
 
-    # --- 2. CREIAMO IL CONTENUTO ---
-    # Invece di aggiungere pezzi sparsi, creiamo una colonna unica.
-    # Questo è il contenitore sicuro.
-    
-    main_column = ft.Column(
-        spacing=0,
-        scroll="auto", # LO SCROLL VA QUI, NON NELLA PAGINA
-        expand=True,   # Occupa tutto lo spazio disponibile
-        controls=[
-            # --- HEADER ---
-            ft.Container(
-                padding=20,
-                content=ft.Column(spacing=5, controls=[
-                    ft.Container(height=20), # Spazio per la barra in alto
-                    ft.Row(controls=[
-                        ft.Container(
-                            width=60, height=60, bgcolor=c_primary, 
-                            border_radius=15, alignment=ft.alignment.center,
-                            content=ft.Text("M2G", color="white", size=20, weight="bold")
-                        ),
-                    ]),
-                    ft.Text("Bentornato, Utente", size=22, weight="bold", color=c_text)
-                ])
-            ),
-            
-            # --- CARDS ---
-            # Inseriamo le card direttamente qui
-        ]
+    # --- DEFINIZIONE ELEMENTI ---
+    # Invece di fare layout complessi, creiamo oggetti semplici e li buttiamo dentro.
+
+    # 1. LOGO M2G
+    logo_box = ft.Container(
+        width=60, height=60, bgcolor="#6a8a73", # Verde
+        border_radius=15, alignment=ft.alignment.center,
+        content=ft.Text("M2G", color="white", size=20, weight="bold")
     )
 
-    # Funzione helper per creare le card in modo pulito
-    def add_card_to_list(title, icon_name):
-        card = ft.Container(
-            bgcolor="white",
-            height=80,
-            border_radius=15,
-            padding=15,
-            margin=ft.margin.symmetric(horizontal=20, vertical=5), # Margine esterno
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                controls=[
-                    ft.Row(controls=[
-                        ft.Container(
-                            width=50, height=50, bgcolor="#dbe4de", 
-                            border_radius=12, alignment=ft.alignment.center,
-                            content=ft.Icon(icon_name, color=c_primary, size=24)
-                        ),
-                        ft.Container(width=10),
-                        ft.Text(title, size=16, weight="bold", color=c_text)
-                    ]),
-                    ft.Icon("chevron_right", color="#cccccc")
-                ]
-            )
+    # 2. TITOLO
+    titolo = ft.Text("Bentornato, Utente", size=22, weight="bold", color="#1a1a1a")
+
+    # 3. CARD DI TEST (Una sola per vedere se va)
+    card_prova = ft.Container(
+        bgcolor="white",
+        height=80,
+        border_radius=15,
+        padding=15,
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            controls=[
+                ft.Row(controls=[
+                    ft.Container(
+                        width=50, height=50, bgcolor="#dbe4de", 
+                        border_radius=12, alignment=ft.alignment.center,
+                        # Icona nativa stringa (sicura)
+                        content=ft.Icon("wb_sunny", color="#6a8a73", size=24)
+                    ),
+                    ft.Container(width=10),
+                    ft.Text("Lodi Mattutine", size=16, weight="bold", color="#1a1a1a")
+                ]),
+                ft.Icon("chevron_right", color="#cccccc")
+            ]
         )
-        main_column.controls.append(card)
+    )
 
-    # Aggiungiamo le card alla colonna
-    add_card_to_list("Lodi Mattutine", "wb_sunny")
-    add_card_to_list("Libretto", "menu_book")
-    add_card_to_list("Inno", "music_note")
-    add_card_to_list("Foto ricordo", "photo_camera")
+    # --- AGGIUNTA DIRETTA (STILE TEST BLU) ---
+    # Niente colonne wrapper, niente expand. Dritto nella pagina.
+    page.add(logo_box)
+    page.add(ft.Container(height=10)) # Spazietto
+    page.add(titolo)
+    page.add(ft.Container(height=30)) # Spazio
+    page.add(card_prova)
+    
+    # Aggiungo un testo di debug per essere sicuro
+    page.add(ft.Container(height=20))
+    page.add(ft.Text("Se vedi questo, la grafica è salva.", color="red"))
 
-    # Spazio finale per non tagliare l'ultimo elemento
-    main_column.controls.append(ft.Container(height=50))
-
-    # --- 3. AGGIUNTA ALLA PAGINA ---
-    # Aggiungiamo SOLO la colonna principale.
-    # Puliamo prima per essere sicuri (come nel test blu)
-    page.clean()
-    page.add(main_column)
     page.update()
 
-# Nessun assets_dir, codice minimale
+# Nessun assets_dir
 if __name__ == "__main__":
     ft.app(target=main)
