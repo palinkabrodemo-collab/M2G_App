@@ -1,28 +1,34 @@
-import flet as ft
+name: Deploy static content to Pages
 
-def main(page: ft.Page):
-    # Setup essenziale
-    page.bgcolor = "#f3f0e9"
-    page.scroll = None # Niente scroll sulla root
-    
-    # Unica colonna semplice
-    col = ft.Column(controls=[
-        ft.Text("M2G APP", size=30, color="black", weight="bold"),
-        ft.Container(height=20),
-        ft.Container(
-            bgcolor="white", padding=20, border_radius=10,
-            content=ft.Row([
-                ft.Container(width=20, height=20, bgcolor="green"),
-                ft.Text("Lodi Mattutine", color="black")
-            ])
-        ),
-        ft.Container(
-            bgcolor="white", padding=20, border_radius=10, margin=ft.margin.only(top=10),
-            content=ft.Text("Se vedi questo funziona", color="black")
-        )
-    ])
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
 
-    page.add(col) # Aggiunta diretta
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
-if __name__ == "__main__":
-    ft.app(target=main)
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
