@@ -5,6 +5,10 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+# Questa riga risolve l'avviso noioso di Node.js 20
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
   pages: write
